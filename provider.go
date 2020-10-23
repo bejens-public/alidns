@@ -2,18 +2,23 @@ package alidns
 
 import (
 	"context"
+	"errors"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"time"
 
+	aliclouddns "github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/libdns/libdns"
 )
 
-// Provider implemented libdns for aliyun dns
+// Provider implements the libdns interfaces for alidns
 type Provider struct {
-	
+	alidnsClient *aliclouddns.Client
 }
 
 // GetRecords lists all the records in the zone.
 func (p *Provider) GetRecords(ctx context.Context, zone string) ([]libdns.Record, error) {
+
+	p.alidnsClient
 	records, err := p.getDNSEntries(ctx, zone)
 	if err != nil {
 		return nil, err
@@ -24,15 +29,26 @@ func (p *Provider) GetRecords(ctx context.Context, zone string) ([]libdns.Record
 
 // AppendRecords adds records to the zone. It returns the records that were added.
 func (p *Provider) AppendRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
+
 	var appendedRecords []libdns.Record
 
 	for _, record := range records {
-		newRecord, err := p.addDNSEntry(ctx, zone, record)
+
+		request := aliclouddns.CreateAddDomainRecordRequest()
+		request.Scheme = "https"
+		request.DomainName = ""
+		request.RR = "test"
+		request.Type = record.Type
+		request.Value = record.Value
+		request.TTL = requests.Integer(record.TTL)
+
+		response, err := p.alidnsClient.AddDomainRecord(request)
 		if err != nil {
 			return nil, err
 		}
-		newRecord.TTL = time.Duration(newRecord.TTL) * time.Second
-		appendedRecords = append(appendedRecords, newRecord)
+		if !response.IsSuccess() {
+			return nil, errors.New(response.GetHttpContentString())
+		}
 	}
 
 	return appendedRecords, nil

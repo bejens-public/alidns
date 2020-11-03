@@ -3,22 +3,23 @@ package alidns
 import (
 	"context"
 	"errors"
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+	"strings"
 	"time"
 
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	aliclouddns "github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/libdns/libdns"
 )
 
 // Provider implements the libdns interfaces for alidns
 type Provider struct {
-	alidnsClient *aliclouddns.Client
+	alidnsClient
 }
 
 // GetRecords lists all the records in the zone.
 func (p *Provider) GetRecords(ctx context.Context, zone string) ([]libdns.Record, error) {
 
-	p.alidnsClient
+	p.alidnsClient.DescribeDomainRecordInfo()
 	records, err := p.getDNSEntries(ctx, zone)
 	if err != nil {
 		return nil, err
@@ -87,4 +88,8 @@ func (p *Provider) SetRecords(ctx context.Context, zone string, records []libdns
 	}
 
 	return setRecords, nil
+}
+
+func getdomainID(zone string) string {
+	return strings.TrimLeft(zone, ".")
 }
